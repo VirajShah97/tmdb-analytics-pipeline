@@ -12,6 +12,7 @@ load_dotenv()
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 S3_BUCKET = os.getenv("S3_BUCKET", "vshah-tmdb-pipeline")
+NUM_PAGES = int(os.getenv("NUM_PAGES", "5"))  # Configurable via env — useful for Lambda deploys
 BASE_URL = "https://api.themoviedb.org/3"
 
 logging.basicConfig(
@@ -26,19 +27,31 @@ s3 = boto3.client("s3")
 
 
 def _get_with_retries(url: str, params: dict, max_retries: int = 3) -> dict:
-    """GET request with exponential backoff for transient failures."""
+    """GET request with exponential backoff for transient failures.
+    
+    Client errors (4xx) are raised immediately without retrying.
+    Server errors (5xx) and connection issues are retried up to max_retries times.
+    """
     for attempt in range(max_retries):
         try:
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             return response.json()
-        except (requests.HTTPError, requests.RequestException) as e:
+        except requests.HTTPError as e:
+            # Don't retry client errors — retrying won't fix a bad request or missing resource
+            if e.response.status_code in range(400, 500):
+                raise
             if attempt == max_retries - 1:
                 raise
             wait = (2**attempt) + 0.25
             logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {wait:.1f}s")
             time.sleep(wait)
-    raise RuntimeError("Unreachable")
+        except requests.RequestException as e:
+            if attempt == max_retries - 1:
+                raise
+            wait = (2**attempt) + 0.25
+            logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {wait:.1f}s")
+            time.sleep(wait)
 
 
 def get_popular_movies(page: int) -> dict:
@@ -57,11 +70,12 @@ def get_movie_details(movie_id: int) -> dict:
 
 # --- Core Logic ---
 
-def fetch_movies(num_pages: int = 5) -> list[dict]:
+def fetch_movies(num_pages: int = NUM_PAGES) -> list[dict]:
     """
     Fetch movie details across num_pages of popular movies.
     Includes budget + revenue for Genre ROI analysis.
     Skips movies where both budget and revenue are 0 (unreported).
+    Note: page_start_count reflects post-filter count (movies with financial data only).
     """
     movies = []
 
@@ -145,7 +159,7 @@ def main():
     if not TMDB_API_KEY:
         raise ValueError("TMDB_API_KEY not found in .env file")
 
-    movies = fetch_movies(num_pages=5)  # 5 pages = ~100 movies, ~30-40 with financial data
+    movies = fetch_movies()  # num_pages controlled by NUM_PAGES env var (default: 5)
     logging.info(f"Total movies with financial data: {len(movies)}")
 
     if not movies:
