@@ -153,7 +153,7 @@ def upload_to_s3(movies: list[dict]) -> str:
 
 # --- Entry Point ---
 
-def main():
+def main(event=None, context=None):
     logging.info("Starting TMDB ingestion")
 
     if not TMDB_API_KEY:
