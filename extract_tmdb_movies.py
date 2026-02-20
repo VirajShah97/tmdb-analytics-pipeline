@@ -3,7 +3,7 @@ import json
 import time
 import logging
 import boto3
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 import requests
 
@@ -11,7 +11,7 @@ import requests
 load_dotenv()
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
-S3_BUCKET = "vshah-tmdb-pipeline"
+S3_BUCKET = os.getenv("S3_BUCKET", "vshah-tmdb-pipeline")
 BASE_URL = "https://api.themoviedb.org/3"
 
 logging.basicConfig(
@@ -24,22 +24,35 @@ s3 = boto3.client("s3")
 
 # --- TMDB Helpers ---
 
+
+def _get_with_retries(url: str, params: dict, max_retries: int = 3) -> dict:
+    """GET request with exponential backoff for transient failures."""
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, params=params, timeout=10)
+            response.raise_for_status()
+            return response.json()
+        except (requests.HTTPError, requests.RequestException) as e:
+            if attempt == max_retries - 1:
+                raise
+            wait = (2**attempt) + 0.25
+            logging.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {wait:.1f}s")
+            time.sleep(wait)
+    raise RuntimeError("Unreachable")
+
+
 def get_popular_movies(page: int) -> dict:
     """Fetch one page of popular movies."""
     url = f"{BASE_URL}/movie/popular"
     params = {"api_key": TMDB_API_KEY, "language": "en-US", "page": page}
-    response = requests.get(url, params=params, timeout=10)
-    response.raise_for_status()
-    return response.json()
+    return _get_with_retries(url, params)
 
 
 def get_movie_details(movie_id: int) -> dict:
     """Fetch full movie details including budget, revenue, and genres."""
     url = f"{BASE_URL}/movie/{movie_id}"
     params = {"api_key": TMDB_API_KEY, "language": "en-US"}
-    response = requests.get(url, params=params, timeout=10)
-    response.raise_for_status()
-    return response.json()
+    return _get_with_retries(url, params)
 
 
 # --- Core Logic ---
@@ -55,9 +68,13 @@ def fetch_movies(num_pages: int = 5) -> list[dict]:
     for page in range(1, num_pages + 1):
         logging.info(f"Fetching popular movies page {page}/{num_pages}")
         popular = get_popular_movies(page)
+        page_start_count = len(movies)
 
         for item in popular.get("results", []):
-            movie_id = item["id"]
+            movie_id = item.get("id")
+            if movie_id is None:
+                logging.debug("Skipping result with missing id")
+                continue
             try:
                 details = get_movie_details(movie_id)
 
@@ -80,35 +97,41 @@ def fetch_movies(num_pages: int = 5) -> list[dict]:
                     "genre_ids": [g["id"] for g in details.get("genres", [])],
                     "original_language": details.get("original_language"),
                     "status": details.get("status"),
-                    "_ingested_at": datetime.utcnow().isoformat()
+                    "_ingested_at": datetime.now(timezone.utc).isoformat()
                 })
-
-                time.sleep(0.25)  # Respect TMDB rate limit (40 req/10s)
 
             except requests.HTTPError as e:
                 logging.warning(f"HTTP error for movie {movie_id}: {e}")
             except Exception as e:
                 logging.error(f"Unexpected error for movie {movie_id}: {e}")
+            finally:
+                time.sleep(0.25)  # Respect TMDB rate limit (40 req/10s)
 
-        logging.info(f"Page {page} complete — {len(movies)} movies collected so far")
+        new_on_page = len(movies) - page_start_count
+        logging.info(f"Page {page} complete — {new_on_page} new (total so far: {len(movies)})")
 
     return movies
 
 
 def upload_to_s3(movies: list[dict]) -> str:
     """Upload movie data as newline-delimited JSON to S3."""
-    date = datetime.utcnow().strftime("%Y-%m-%d")
-    timestamp = datetime.utcnow().strftime("%H-%M-%S")
+    now = datetime.now(timezone.utc)
+    date = now.strftime("%Y-%m-%d")
+    timestamp = now.strftime("%H-%M-%S")
     s3_key = f"raw/movies/{date}/movies_{timestamp}.json"
 
     ndjson = "\n".join(json.dumps(m) for m in movies)
 
-    s3.put_object(
-        Bucket=S3_BUCKET,
-        Key=s3_key,
-        Body=ndjson.encode("utf-8"),
-        ContentType="application/json"
-    )
+    try:
+        s3.put_object(
+            Bucket=S3_BUCKET,
+            Key=s3_key,
+            Body=ndjson.encode("utf-8"),
+            ContentType="application/x-ndjson"
+        )
+    except Exception as e:
+        logging.error(f"S3 upload failed: {e}")
+        raise
 
     logging.info(f"Uploaded {len(movies)} movies to s3://{S3_BUCKET}/{s3_key}")
     return s3_key
@@ -129,8 +152,12 @@ def main():
         logging.warning("No movies fetched — check API key and filters")
         return
 
-    s3_key = upload_to_s3(movies)
-    logging.info(f"Ingestion complete. S3 key: {s3_key}")
+    try:
+        s3_key = upload_to_s3(movies)
+        logging.info(f"Ingestion complete. S3 key: {s3_key}")
+    except Exception as e:
+        logging.error(f"Ingestion failed at S3 upload: {e}")
+        raise
 
 
 if __name__ == "__main__":
