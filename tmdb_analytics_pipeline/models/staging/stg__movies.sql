@@ -1,9 +1,3 @@
--- Silver layer: deduplicated, type-cast, null-handled movie records
-
---   Raw table has a single VARIANT column named `raw_data`
---   Raw table is defined in sources.yml as source('tmdb_raw', 'movies')
---   Each row = one movie record as loaded from NDJSON via Snowpipe
-
 {{ config(materialized='view') }}
 
 with parsed as (
@@ -36,8 +30,10 @@ with parsed as (
 
 ),
 
--- Remove duplicate movie records (Snowpipe appends on every Lambda run)
--- Keep the most recently ingested copy of each movie
+/*
+    Remove duplicate movie records (Snowpipe appends on every Lambda run)
+    Keep the most recently ingested copy of each movie
+*/
 deduplicated as (
 
     select *
@@ -58,14 +54,14 @@ final as (
         title,
         release_date,
 
-        -- Derived date parts (useful for time-based analysis)
+        -- Derived date parts
         year(release_date)                      as release_year,
         month(release_date)                     as release_month,
 
         original_language,
         status,
 
-        -- Null-safe financials: treat 0 as null (no real financial data)
+        -- Null-safe financials
         nullif(budget, 0)                       as budget,
         nullif(revenue, 0)                      as revenue,
 
@@ -92,8 +88,10 @@ final as (
 
     from deduplicated
 
-    -- Only keep movies with at least one financial data point
-    -- (budget OR revenue present) so mart has usable data
+    /*
+        Only keep movies with at least one financial data point
+        (budget OR revenue present) so mart has usable data
+    */
     where nullif(budget, 0) is not null
        or nullif(revenue, 0) is not null
 

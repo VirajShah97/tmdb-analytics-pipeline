@@ -1,13 +1,4 @@
 {{ config(materialized='table') }}
--- Gold layer: ROI aggregated by genre — the core business question
-
--- Business question: Which movie genres deliver the highest return on investment?
-
-/*
-    Each movie can belong to multiple genres (e.g. Action + Thriller).
-    This model explodes the genres array so each movie-genre pair is its own row,
-    then aggregates ROI metrics at the genre level.
-*/
 
 with movie_genres as (
 
@@ -93,14 +84,16 @@ select
     avg_vote_count,
     pct_profitable,
 
-    -- Rank genres by average ROI (useful for dashboard sorting)
+    -- Rank genres by average ROI
     rank() over (order by avg_roi desc)         as roi_rank,
     rank() over (order by portfolio_roi desc)   as portfolio_roi_rank
 
 from genre_aggregates
 
--- Minimum threshold: exclude genres with fewer than 10 movies
--- to avoid misleading ROI from small sample sizes
+/*
+    Minimum threshold: exclude genres with fewer than 10 movies
+    to avoid misleading ROI from small sample sizes
+*/
 where total_movies >= 10
 
 order by avg_roi desc
