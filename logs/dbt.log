@@ -1,0 +1,30 @@
+[0m20:32:43.777678 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'start', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001E2C1B517C0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001E2C2E3BE80>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001E2C2E3BC40>]}
+
+
+============================== 20:32:43.793358 | 2592694f-98c4-410d-a786-2af1568d415d ==============================
+[0m20:32:43.793358 [info ] [MainThread]: Running with dbt=1.11.0-b3
+[0m20:32:43.793358 [debug] [MainThread]: running dbt with arguments {'fail_fast': 'False', 'debug': 'False', 'log_cache_events': 'False', 'send_anonymous_usage_stats': 'True', 'warn_error_options': 'WarnErrorOptionsV2(error=[], warn=[], silence=[])', 'cache_selected_only': 'False', 'no_print': 'None', 'log_format': 'default', 'version_check': 'True', 'empty': 'None', 'printer_width': '80', 'partial_parse': 'True', 'log_path': 'logs', 'quiet': 'False', 'warn_error': 'None', 'write_json': 'True', 'target_path': 'None', 'invocation_command': 'dbt init tmdb_analytics_pipeline', 'introspect': 'True', 'static_parser': 'True', 'profiles_dir': 'C:\\Users\\viraj\\.dbt', 'use_experimental_parser': 'False', 'use_colors': 'True', 'indirect_selection': 'eager'}
+[0m20:32:43.825733 [info ] [MainThread]: Creating dbt configuration folder at C:\Users\viraj\.dbt
+[0m20:32:43.825733 [debug] [MainThread]: Starter project path: c:\python\python395\lib\site-packages\dbt\include\starter_project
+[0m20:32:43.906471 [info ] [MainThread]: 
+Your new dbt project "tmdb_analytics_pipeline" was created!
+
+For more information on how to configure the profiles.yml file,
+please consult the dbt documentation here:
+
+  https://docs.getdbt.com/docs/configure-your-profile
+
+One more thing:
+
+Need help? Don't hesitate to reach out to us via GitHub issues or on Slack:
+
+  https://community.getdbt.com/
+
+Happy modeling!
+
+[0m20:32:43.906471 [info ] [MainThread]: Setting up your profile.
+[0m20:34:25.556069 [info ] [MainThread]: Profile tmdb_analytics_pipeline written to C:\Users\viraj\.dbt\profiles.yml using target's profile_template.yml and your supplied values. Run 'dbt debug' to validate the connection.
+[0m20:34:25.568087 [debug] [MainThread]: Command `dbt init` succeeded at 20:34:25.568087 after 101.87 seconds
+[0m20:34:25.570973 [debug] [MainThread]: Sending event: {'category': 'dbt', 'action': 'invocation', 'label': 'end', 'context': [<snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001E2C1B517C0>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001E2C2DE3640>, <snowplow_tracker.self_describing_json.SelfDescribingJson object at 0x000001E2C2E3BB80>]}
+[0m20:34:25.573861 [debug] [MainThread]: Flushing usage events
+[0m20:34:25.830606 [debug] [MainThread]: An error was encountered while trying to flush usage events
