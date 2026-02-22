@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: mart__genre_roi
+    description: >
+      Gold layer. ROI aggregated by genre across all movies with known financials.
+      Each row represents one genre. Movies belonging to multiple genres are counted
+      in each genre — totals across genres will exceed actuals by design.
+      Excludes genres with fewer than 10 movies to avoid misleading ROI from small samples.
+
+    columns:
+      - name: genre_id
+        description: TMDB genre identifier
+        tests:
+          - not_null
+          - unique
+
+      - name: genre_name
+        description: Genre name (e.g. 'Action', 'Drama')
+        tests:
+          - not_null
+          - unique
+
+      - name: total_movies
+        description: Number of movies in this genre with known financials
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 10  # enforces the minimum threshold filter
+              inclusive: true
+
+      - name: avg_roi
+        description: Average ROI across all movies in this genre
+        tests:
+          - not_null
+
+      - name: median_roi
+        description: Median ROI — less sensitive to outliers than avg_roi
+        tests:
+          - not_null
+
+      - name: min_roi
+        description: Lowest ROI recorded in this genre
+        tests:
+          - not_null
+
+      - name: max_roi
+        description: Highest ROI recorded in this genre
+        tests:
+          - not_null
+
+      - name: portfolio_roi
+        description: >
+          ROI treating all movies in the genre as one pooled investment:
+          (sum(revenue) - sum(budget)) / sum(budget)
+        tests:
+          - not_null
+
+      - name: total_budget
+        description: Sum of all budgets for movies in this genre (USD)
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+
+      - name: total_revenue
+        description: Sum of all revenues for movies in this genre (USD)
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+
+      - name: total_profit
+        description: total_revenue minus total_budget (USD)
+        tests:
+          - not_null
+
+      - name: avg_popularity
+        description: Average TMDB popularity score across movies in this genre
+        tests:
+          - not_null
+
+      - name: avg_vote_average
+        description: Average audience rating across movies in this genre (0-10)
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10
+
+      - name: avg_vote_count
+        description: Average number of audience votes across movies in this genre
+        tests:
+          - not_null
+
+      - name: pct_profitable
+        description: Share of movies in this genre with positive ROI (0-1)
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+
+      - name: roi_rank
+        description: Genre rank by avg_roi (1 = highest avg ROI)
+        tests:
+          - not_null
+          - unique
+
+      - name: portfolio_roi_rank
+        description: Genre rank by portfolio_roi (1 = highest portfolio ROI)
+        tests:
+          - not_null
+          - unique
