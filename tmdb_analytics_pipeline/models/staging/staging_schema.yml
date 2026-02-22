@@ -1,0 +1,101 @@
+version: 2
+
+models:
+  - name: stg__movies
+    description: >
+      Silver layer. Deduplicated, type-cast movie records parsed from raw TMDB JSON.
+      Filtered to movies with at least one financial data point (budget or revenue).
+
+    columns:
+      - name: movie_id
+        description: Unique TMDB movie identifier
+        tests:
+          - not_null
+          - unique
+
+      - name: title
+        description: Movie title
+        tests:
+          - not_null
+
+      - name: release_date
+        description: Theatrical release date
+        tests:
+          - not_null
+
+      - name: release_year
+        description: Year extracted from release_date
+        tests:
+          - not_null
+
+      - name: release_month
+        description: Month extracted from release_date
+        tests:
+          - not_null
+
+      - name: original_language
+        description: Original language code (e.g. 'en', 'fr')
+        tests:
+          - not_null
+
+      - name: budget
+        description: Production budget in USD. Null if TMDB reported 0 (unknown).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false  # budget of 0 should have been nulled out above
+
+      - name: revenue
+        description: Total revenue in USD. Null if TMDB reported 0 (unknown).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false  # revenue of 0 should have been nulled out above
+
+      - name: roi
+        description: >
+          Return on investment: (revenue - budget) / budget.
+          Null if budget or revenue is unknown. Can be negative (loss).
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -1  # cannot lose more than 100% of budget
+
+      - name: profit
+        description: Revenue minus budget in USD. Null if budget or revenue is unknown.
+
+      - name: popularity
+        description: TMDB popularity score
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+
+      - name: vote_average
+        description: Average audience rating (0-10)
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10
+
+      - name: vote_count
+        description: Number of audience votes
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              inclusive: false
+
+      - name: runtime_minutes
+        description: Movie runtime in minutes
+
+      - name: genres_raw
+        description: Raw VARIANT array of genre objects e.g. [{"id": 28, "name": "Action"}]
+        tests:
+          - not_null
+
+      - name: ingested_at
+        description: Timestamp when the record was written to S3 by Lambda
+        tests:
+          - not_null
