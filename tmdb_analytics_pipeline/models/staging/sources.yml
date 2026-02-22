@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: tmdb_raw
+    database: TMDB
+    schema: RAW
+    tables:
+      - name: movies
+        description: Raw TMDB movie records loaded via Snowpipe. Append-only NDJSON.
+        columns:
+          - name: raw_data
+            description: Single VARIANT column containing the full movie JSON payload
+            tests:
+              - not_null
