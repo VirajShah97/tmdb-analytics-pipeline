@@ -4,7 +4,7 @@ with parsed as (
 
     select
         -- IDs & metadata
-        raw_data:id::int                        as movie_id,
+        raw_data:movie_id::int                        as movie_id,
         raw_data:title::varchar                 as title,
         raw_data:release_date::date             as release_date,
         raw_data:original_language::varchar     as original_language,
