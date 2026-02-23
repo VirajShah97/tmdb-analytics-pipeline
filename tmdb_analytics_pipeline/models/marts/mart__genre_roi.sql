@@ -26,7 +26,6 @@ with movie_genres as (
 genre_aggregates as (
 
     select
-        genre_id,
         genre_name,
 
         -- Volume
