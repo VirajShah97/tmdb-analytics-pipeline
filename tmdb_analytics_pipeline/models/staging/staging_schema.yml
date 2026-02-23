@@ -91,7 +91,7 @@ models:
         description: Movie runtime in minutes
 
       - name: genres_raw
-        description: Raw VARIANT array of genre objects e.g. [{"id": 28, "name": "Action"}]
+        description: Raw VARIANT array of genre objects
         tests:
           - not_null
 
