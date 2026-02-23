@@ -42,15 +42,17 @@ models:
         description: Production budget in USD. Null if TMDB reported 0 (unknown).
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: false  # budget of 0 should have been nulled out above
+              arguments:
+                min_value: 0
+                inclusive: false
 
       - name: revenue
         description: Total revenue in USD. Null if TMDB reported 0 (unknown).
         tests:
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: false  # revenue of 0 should have been nulled out above
+              arguments:
+                min_value: 0
+                inclusive: false
 
       - name: roi
         description: >
@@ -58,7 +60,8 @@ models:
           Null if budget or revenue is unknown. Can be negative (loss).
         tests:
           - dbt_utils.accepted_range:
-              min_value: -1  # cannot lose more than 100% of budget
+              arguments:
+                min_value: -1
 
       - name: profit
         description: Revenue minus budget in USD. Null if budget or revenue is unknown.
@@ -68,30 +71,33 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: false
+              arguments:
+                min_value: 0
+                inclusive: false
 
       - name: vote_average
         description: Average audience rating (0-10)
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 10
+              arguments:
+                min_value: 0
+                max_value: 10
 
       - name: vote_count
         description: Number of audience votes
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              inclusive: false
+              arguments:
+                min_value: 0
+                inclusive: false
 
       - name: runtime_minutes
         description: Movie runtime in minutes
 
       - name: genres_raw
-        description: Raw VARIANT array of genre objects
+        description: Raw VARIANT array of genre objects from the TMDB API response.
         tests:
           - not_null
 
