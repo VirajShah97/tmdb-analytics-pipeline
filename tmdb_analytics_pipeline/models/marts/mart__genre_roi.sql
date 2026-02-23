@@ -13,8 +13,7 @@ with movie_genres as (
         m.popularity,
         m.vote_average,
         m.vote_count,
-        g.value:id::int         as genre_id,
-        g.value:name::varchar   as genre_name
+        g.value::varchar   as genre_name
 
     from {{ ref('stg__movies') }} m,
     lateral flatten(input => m.genres_raw) g
@@ -63,12 +62,10 @@ genre_aggregates as (
 
     from movie_genres
 
-    group by genre_id, genre_name
-
+    group by genre_name
 )
 
 select
-    genre_id,
     genre_name,
     total_movies,
     avg_roi,

@@ -20,8 +20,9 @@ with parsed as (
         raw_data:vote_count::int                as vote_count,
         raw_data:runtime::int                   as runtime_minutes,
 
-        -- Genres stored as array: [{"id": 28, "name": "Action"}, ...]
+        -- Genre data is stored in array format
         raw_data:genres                         as genres_raw,
+
 
         -- Load metadata
         raw_data:_ingested_at::timestamp_ntz    as ingested_at
