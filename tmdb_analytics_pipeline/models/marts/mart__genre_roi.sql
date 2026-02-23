@@ -16,7 +16,7 @@ with movie_genres as (
         g.value:id::int         as genre_id,
         g.value:name::varchar   as genre_name
 
-    from {{ ref('stg_movies') }} m,
+    from {{ ref('stg__movies') }} m,
     lateral flatten(input => m.genres_raw) g
 
     -- Only include movies where ROI is calculable
