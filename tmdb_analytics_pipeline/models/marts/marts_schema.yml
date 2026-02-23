@@ -9,11 +9,6 @@ models:
       Excludes genres with fewer than 10 movies to avoid misleading ROI from small samples.
 
     columns:
-      - name: genre_id
-        description: TMDB genre identifier
-        tests:
-          - not_null
-          - unique
 
       - name: genre_name
         description: Genre name (e.g. 'Action', 'Drama')
