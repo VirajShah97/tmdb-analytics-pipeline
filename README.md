@@ -1,6 +1,6 @@
 # TMDB Genre ROI Analytics Pipeline
 
-Not all genres are created equal — a Horror film can turn a $5M budget into a $100M hit, while a big-budget Action film might barely break even. This pipeline ingests daily movie data from TMDB's popular movies feed, loads it into Snowflake, and transforms it using dbt to answer: **which film genres deliver the highest return on investment?** Because the data comes from TMDB's popular movies feed, the analysis reflects current trends rather than all-time history.
+Not all genres are created equal — a Horror film can turn a $5M budget into a $100M hit, while a big-budget Action film might barely break even. This pipeline ingests daily movie data from TMDB's popular movies feed, loads it into Snowflake, and transforms it using dbt to answer: **which film genres deliver the highest return on investment?** Because the data comes from TMDB's popular movies feed, the analysis reflects what audiences are actively watching and engaging with.
 
 ## Architecture
 
@@ -43,6 +43,8 @@ dbt Cloud (7am UTC, 1hr after ingestion)
 **Which film genres deliver the best return on investment?**
 
 Each genre is evaluated across multiple ROI lenses — average ROI captures the typical film's performance, median ROI removes the distortion of outliers, and portfolio ROI treats the entire genre as a single investment to reflect how a studio allocating budget across a genre would actually perform. The share of movies that turned a profit rounds out the picture. Genres with fewer than 10 movies are excluded to keep the results statistically meaningful.
+
+TMDB's popularity score is a rolling metric based on current views, ratings, and watchlist activity — not release date. Older movies experiencing a resurgence (due to a sequel, a streaming add, or a viral moment) will appear alongside new releases. The dataset is not limited to recent films by design.
 
 ## Key Design Decisions
 
