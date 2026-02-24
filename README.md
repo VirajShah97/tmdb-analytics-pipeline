@@ -13,40 +13,30 @@ AWS Lambda (Python)
         │  Filters movies with no financial data
         │  Uploads as NDJSON
         ▼
-AWS S3 (raw/movies/YYYY-MM-DD/movies_HH-MM-SS.json)
+AWS S3 (raw/movies/YYYY-MM-DD/movies_HH-MM-SS.json)        ← Bronze layer
         │
         ▼
 Snowpipe (AUTO_INGEST via SQS event notification)
         │  Appends new files automatically on arrival
         ▼
-Snowflake: TMDB.RAW.MOVIES (VARIANT column)
+Snowflake: TMDB.RAW.MOVIES (VARIANT column)                 ← Bronze layer
         │
         ▼
 dbt Cloud (7am UTC, 1hr after ingestion)
         │
-        ├── stg__movies (view)
+        ├── stg__movies (view)                               ← Silver layer
         │     Parses VARIANT JSON → typed columns
         │     Deduplicates via QUALIFY ROW_NUMBER()
         │     Treats budget/revenue = 0 as NULL
         │     Calculates ROI and profit
+        │     Tests: not_null, unique, accepted_range
         │
-        └── mart__genre_roi (table)
+        └── mart__genre_roi (table)                          ← Gold layer
               LATERAL FLATTEN to explode genres array
               Aggregates ROI metrics by genre
               Filters genres with < 10 movies
+              Tests: not_null, accepted_range
 ```
-
-## Tech Stack
-
-| Layer | Tool |
-|---|---|
-| Orchestration | AWS EventBridge |
-| Ingestion | AWS Lambda (Python 3.12) |
-| Raw Storage | AWS S3 |
-| Auto-Ingest | Snowflake Snowpipe |
-| Data Warehouse | Snowflake |
-| Transformation | dbt Cloud |
-| Testing | dbt tests + dbt_utils |
 
 ## Business Question
 
@@ -75,29 +65,6 @@ Genres with fewer than 10 movies are excluded to avoid misleading ROI from small
 **Deduplication in dbt, not at ingest** — Snowpipe appends every file that lands in S3, so duplicate movie records are expected at the raw layer. `stg__movies` deduplicates using `QUALIFY ROW_NUMBER()`, keeping the most recent copy of each movie.
 
 **IAM role for Snowflake-to-S3** — Snowflake connects to S3 via a storage integration (IAM role assumption with temporary credentials) rather than hardcoded IAM user access keys. This follows the principle of least privilege and avoids storing permanent credentials in a third-party system.
-
-## Data Quality
-
-`dbt build` runs tests on every production execution:
-
-- `not_null` and `unique` on primary keys
-- `not_null` on all business-critical columns
-- `dbt_utils.accepted_range` on numeric fields (e.g. `vote_average` between 0–10, `pct_profitable` between 0–1, `total_movies` ≥ 10)
-
-## Medallion Architecture
-
-| Layer | Location | Description |
-|---|---|---|
-| Bronze | S3 + `TMDB.RAW.MOVIES` | Raw NDJSON exactly as received from TMDB API |
-| Silver | `TMDB.STAGING.STG__MOVIES` | Parsed, deduplicated, typed, ROI calculated |
-| Gold | `TMDB.MARTS.MART__GENRE_ROI` | Genre-level aggregations for analysis |
-
-## Pipeline Schedule
-
-| Step | Schedule | Description |
-|---|---|---|
-| Lambda ingestion | 6:00 AM UTC daily | Fetches 5 pages (~100 movies) from TMDB |
-| dbt Cloud build | 7:00 AM UTC daily | Transforms and tests all models |
 
 ## Setup
 
