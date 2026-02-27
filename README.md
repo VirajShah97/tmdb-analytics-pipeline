@@ -46,6 +46,12 @@ Each genre is evaluated across multiple ROI lenses — average ROI captures the 
 
 TMDB's popularity score is a rolling metric based on current views, ratings, and watchlist activity — not release date. Older movies experiencing a resurgence (due to a sequel, a streaming add, or a viral moment) will appear alongside new releases. The dataset is not limited to recent films by design.
 
+## Key Insight
+
+Genre rankings diverge significantly depending on which ROI lens you apply. Crime ranks #1 by average ROI but #8 by portfolio ROI — meaning a handful of breakout hits inflate the average, while the genre as a whole underperforms when treated as a single investment. A studio chasing the next *Gone Girl* faces a very different risk profile than one systematically allocating budget across genres.
+
+This divergence is why the mart surfaces both metrics rather than a single ROI figure.
+
 ## Key Design Decisions
 
 **VARIANT column at raw layer** — raw data is stored as a single VARIANT column in Snowflake rather than parsed at load time. This means Snowpipe never breaks on API schema changes; parsing happens in dbt where it is version-controlled and covered by tests. If TMDB renames a field, a `not_null` test fails on the next dbt run rather than silently producing bad data.
